@@ -1,0 +1,33 @@
+{
+  "id": "05_ambiguous_instruction",
+  "name": "Ambiguous Instruction",
+  "description": "User gives an ambiguous colour preference ('something warm') for a logo redesign. The system should flag uncertainty and request clarification rather than invent a specific colour.",
+  "scenario_type": "ambiguous_instruction",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I need a logo redesign for my bakery. Use something warm for the colour scheme."
+    },
+    {
+      "role": "assistant",
+      "content": "I'd love to help redesign your bakery logo! Before I proceed, could you clarify what you mean by 'something warm'? For example, are you thinking of golden yellows and oranges, earthy terracottas and browns, soft rose and blush tones, or something else? Knowing your preference will help me match the right palette."
+    },
+    {
+      "role": "user",
+      "content": "Hmm, I'm not sure yet. Just go with your best guess for now."
+    },
+    {
+      "role": "assistant",
+      "content": "Understood — I'll go with a warm amber and cream palette as a starting point, but please let me know if you'd like to adjust the colours once you see the initial concept."
+    }
+  ],
+  "expected_state": {
+    "action": "logo_redesign",
+    "client_type": "bakery",
+    "color_scheme": "AMBIGUOUS",
+    "clarification_needed": true,
+    "clarification_question": "What specific warm colours do you prefer? (e.g., golden yellow, terracotta, blush rose)"
+  },
+  "clarification_expected": true,
+  "notes": "The system should mark color_scheme as AMBIGUOUS and set clarification_needed=true. It should NOT invent a definitive colour choice as the confirmed intent. The model's assumed palette is speculative, not confirmed."
+}

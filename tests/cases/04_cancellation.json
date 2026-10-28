@@ -1,0 +1,32 @@
+{
+  "id": "04_cancellation",
+  "name": "Cancellation",
+  "description": "User cancels a previously requested newsletter subscription. The final state must reflect cancellation, not the original request.",
+  "scenario_type": "cancellation",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Please sign me up for the weekly product digest newsletter with my email john@example.com."
+    },
+    {
+      "role": "assistant",
+      "content": "Done! I've subscribed john@example.com to the weekly product digest newsletter. You'll receive your first issue next Monday."
+    },
+    {
+      "role": "user",
+      "content": "Actually, I've changed my mind. Please cancel that subscription."
+    },
+    {
+      "role": "assistant",
+      "content": "Understood. I've cancelled the newsletter subscription for john@example.com. You won't receive any future issues."
+    }
+  ],
+  "expected_state": {
+    "action": "cancel_subscription",
+    "subscription_type": "weekly_product_digest",
+    "email": "john@example.com",
+    "status": "cancelled"
+  },
+  "clarification_expected": false,
+  "notes": "The final state must be cancellation, not an active subscription. status must be 'cancelled', not 'active'."
+}

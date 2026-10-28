@@ -1,0 +1,33 @@
+{
+  "id": "03_partial_update",
+  "name": "Partial Update",
+  "description": "User changes the budget for a trip but leaves destination, duration, and accommodation type unchanged.",
+  "scenario_type": "partial_update",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "I want to plan a 7-day trip to Kyoto. Budget is $2000. I'd like to stay in a traditional ryokan."
+    },
+    {
+      "role": "assistant",
+      "content": "Wonderful! I'll plan a 7-day trip to Kyoto for you. Budget: $2,000. Accommodation: traditional ryokan. I'll start looking for options."
+    },
+    {
+      "role": "user",
+      "content": "Wait, I can actually spend $3000 now. Keep everything else the same."
+    },
+    {
+      "role": "assistant",
+      "content": "Great upgrade! I've updated your budget to $3,000. Your 7-day Kyoto trip with a traditional ryokan stay is otherwise unchanged."
+    }
+  ],
+  "expected_state": {
+    "action": "plan_trip",
+    "destination": "Kyoto",
+    "duration_days": 7,
+    "budget_usd": 3000,
+    "accommodation_type": "ryokan"
+  },
+  "clarification_expected": false,
+  "notes": "Only budget changes from 2000 to 3000. Destination, duration, and accommodation_type must remain exactly as first specified."
+}

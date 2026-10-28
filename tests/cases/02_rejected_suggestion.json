@@ -1,0 +1,33 @@
+{
+  "id": "02_rejected_suggestion",
+  "name": "Rejected Suggestion",
+  "description": "The assistant proposes a venue upgrade; the user explicitly rejects it. The suggestion must NOT appear in the final state.",
+  "scenario_type": "rejected_suggestion",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Book a table for four at Bella Italia for Friday evening."
+    },
+    {
+      "role": "assistant",
+      "content": "I can book Bella Italia for four on Friday evening. I also noticed La Maison is available and has a special tasting menu this Friday — would you like me to switch to that instead?"
+    },
+    {
+      "role": "user",
+      "content": "No, stick with Bella Italia please."
+    },
+    {
+      "role": "assistant",
+      "content": "Understood, keeping Bella Italia. I'll confirm a table for four on Friday evening."
+    }
+  ],
+  "expected_state": {
+    "action": "book_restaurant",
+    "restaurant": "Bella Italia",
+    "party_size": 4,
+    "day": "Friday",
+    "time_of_day": "evening"
+  },
+  "clarification_expected": false,
+  "notes": "La Maison was suggested by the assistant but explicitly rejected. The final state must show Bella Italia, not La Maison."
+}

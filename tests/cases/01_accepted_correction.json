@@ -1,0 +1,33 @@
+{
+  "id": "01_accepted_correction",
+  "name": "Accepted Correction",
+  "description": "User corrects an earlier value (meeting time changed from 2pm to 3pm). The system must track the override.",
+  "scenario_type": "accepted_correction",
+  "conversation": [
+    {
+      "role": "user",
+      "content": "Schedule a team meeting for tomorrow at 2pm in Conference Room A. Invite Alice, Bob, and Carol."
+    },
+    {
+      "role": "assistant",
+      "content": "Got it! I've scheduled a team meeting for tomorrow at 2:00 PM in Conference Room A. I'll send invites to Alice, Bob, and Carol."
+    },
+    {
+      "role": "user",
+      "content": "Actually, make it 3pm instead. Everything else stays the same."
+    },
+    {
+      "role": "assistant",
+      "content": "Updated! The meeting is now rescheduled to 3:00 PM tomorrow in Conference Room A. Alice, Bob, and Carol are still invited."
+    }
+  ],
+  "expected_state": {
+    "action": "schedule_meeting",
+    "time": "3:00 PM",
+    "day": "tomorrow",
+    "location": "Conference Room A",
+    "attendees": ["Alice", "Bob", "Carol"]
+  },
+  "clarification_expected": false,
+  "notes": "The original 2pm must NOT appear in the final state. The correction to 3pm must be honoured."
+}
