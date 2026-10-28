@@ -1,256 +1,317 @@
 # IntentLedger
 
-> **A developer tool that evaluates whether an AI system correctly tracks changing instructions across multi-turn conversations.**
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Tests](https://img.shields.io/badge/tests-67%20passing-2ea44f)](#testing)
+[![License](https://img.shields.io/badge/license-not%20specified-lightgrey)](#license)
 
-⚠️ **Small demonstration benchmark (5 hand-crafted cases). Results do NOT establish general AI reliability.**
+**IntentLedger is an explainable evaluation workspace for testing whether an AI model preserves a user's final intent across changing multi-turn instructions.**
 
----
+It compares a simple baseline extraction prompt with an instruction-aware prompt, scores both predictions against human-authored expected states, and shows exactly which fields matched, changed, disappeared, or appeared unexpectedly.
 
-## Table of Contents
+> **Demo scope:** five hand-crafted scenarios. Results are useful for prompt comparison and debugging, but they do not establish general AI reliability.
 
-1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Installation](#installation)
-4. [API Configuration](#api-configuration)
-5. [Running the Application](#running-the-application)
-6. [Running the Tests](#running-the-tests)
-7. [Test Cases](#test-cases)
-8. [Evaluation Modes](#evaluation-modes)
-9. [Offline Mode](#offline-mode)
-10. [Limitations](#limitations)
-11. [AI-Tool Disclosure](#ai-tool-disclosure)
+## Why IntentLedger
 
----
+Conversational systems often fail when the user's intent changes during a dialogue:
 
-## Overview
+- A corrected value does not fully replace the original.
+- An assistant suggestion is mistaken for a user decision.
+- A partial update accidentally removes unchanged details.
+- A cancellation is represented as an active request.
+- An unresolved preference is converted into a confident guess.
 
-AI assistants often fail to correctly track user intent when instructions change mid-conversation: the user corrects a value, rejects a suggestion, partially updates a request, cancels an action, or leaves an instruction ambiguous.
+IntentLedger turns these failures into inspectable evaluation records instead of hiding them behind a single aggregate score.
 
-**IntentLedger** runs structured conversation test cases through a model, extracts a JSON representation of the "final intended state," and compares it field-by-field against a human-authored ground truth.
+## What You Can Do
 
-### Key features
+- Run one scenario or the complete five-case benchmark.
+- Compare **Baseline** and **Improved** prompt behavior.
+- Inspect the transcript, expected state, predicted state, and raw model output.
+- Review field-level `match`, `mismatch`, `missing`, and `unexpected` outcomes.
+- Distinguish `PASS`, `FAIL`, and operational `ERROR` results.
+- Verify model access separately from API-key presence.
+- Preserve evaluation results across normal Streamlit reruns.
+- Export existing session results as structured JSON or correctly quoted CSV.
+- Use the interface and test suite without making a model call in offline mode.
 
-| Feature | Description |
-|---|---|
-| **5 scenario types** | Correction, rejection, partial update, cancellation, ambiguity |
-| **Two evaluation modes** | Baseline (naive prompt) vs Improved (instruction-tracking prompt) |
-| **Field-level scoring** | Match / mismatch / missing / unexpected per field |
-| **Clarification metric** | Separate metric for the ambiguous case |
-| **Normalization** | Time strings, currency, lists compared canonically |
-| **Offline mode** | Validate harness and UI without an API key |
-| **PASS / FAIL / ERROR** | Clear verdict per run |
-| **JSON and CSV export** | Download only the evaluation records currently stored in session |
+## Quick Start
 
----
-
-## Architecture
-
-```
-IntentLedger-HackDay/
-├── app.py                     # Streamlit UI
-├── requirements.txt
-├── engine/
-│   ├── __init__.py
-│   ├── extractor.py           # Google Gen AI model calls & offline mode
-│   ├── normalizer.py          # Value normalisation (time, currency, lists)
-│   ├── prompts.py             # Baseline & improved system prompts
-│   ├── scorer.py              # Field-level comparison & scoring
-│   ├── exporter.py            # JSON/CSV report serialization and sanitization
-│   └── loader.py              # Test-case loader
-└── tests/
-    ├── __init__.py
-    ├── test_scorer.py         # Unit tests for scorer
-    ├── test_normalizer.py     # Unit tests for normalizer
-    └── cases/
-        ├── 01_accepted_correction.json
-        ├── 02_rejected_suggestion.json
-        ├── 03_partial_update.json
-        ├── 04_cancellation.json
-        └── 05_ambiguous_instruction.json
-```
-
-### Data flow
-
-```
-Conversation transcript
-        │
-        ▼
-  engine/prompts.py   ──►  build_extraction_prompt(mode)
-        │
-        ▼
-  engine/extractor.py ──►  Google Gen AI API  ──►  raw JSON string
-        │
-        ▼
-  engine/normalizer.py ──► normalize each field value
-        │
-        ▼
-  engine/scorer.py    ──►  field-level ScoreResult (PASS/FAIL/ERROR)
-        │
-        ▼
-       app.py         ──►  Streamlit UI display
-```
-
----
-
-## Installation
+### 1. Clone and enter the repository
 
 ```bash
+git clone https://github.com/garlapati3105-cmd/IntentLedger-HackDay.git
 cd IntentLedger-HackDay
+```
+
+### 2. Create a virtual environment
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Linux or macOS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-Python 3.11+ recommended.
+### 4. Configure live evaluation
 
----
+IntentLedger reads the API key from the `GEMINI_API_KEY` environment variable.
 
-## API Configuration
+Windows PowerShell:
 
-IntentLedger uses the **Google Gen AI Python SDK** (`google-genai`) and by default calls
-**Google's hosted Gemma 4 model** (`gemma-4-26b-a4b-it`) through the Gemini API.
-The model runs on Google's infrastructure — it is not a local deployment.
-
-### Set your API key
-
-**Windows (PowerShell):**
 ```powershell
-$env:GEMINI_API_KEY = "your-api-key-here"
+$env:GEMINI_API_KEY = "your-api-key"
 ```
 
-**Linux / macOS:**
+Linux or macOS:
+
 ```bash
-export GEMINI_API_KEY="your-api-key-here"
+export GEMINI_API_KEY="your-api-key"
 ```
 
-**Streamlit secrets (`.streamlit/secrets.toml`):**
-```toml
-GEMINI_API_KEY = "your-api-key-here"
-```
+Never commit an API key. `.env` files and `.streamlit/secrets.toml` are excluded by `.gitignore`.
 
-> ⚠️ Never hardcode API keys in source files. The key is read exclusively from the environment variable `GEMINI_API_KEY`.
-
-### Configure the model (optional)
-
-The default model is `gemma-4-26b-a4b-it` (hosted Gemma 4 via the Gemini API). Override with:
-
-```powershell
-$env:INTENTLEDGER_MODEL = "gemini-2.0-flash"
-```
-
-The application will verify that the selected model is available via the Gen AI API and show an error if it is not.
-
----
-
-## Running the Application
+### 5. Launch the application
 
 ```bash
 streamlit run app.py
 ```
 
-Then open [http://localhost:8501](http://localhost:8501) in your browser.
+Open [http://localhost:8501](http://localhost:8501).
 
-### Controls
+## Model Configuration
 
-- **Scenario selector** (sidebar) — pick a test case to inspect
-- **▶ Run Baseline / ▶ Run Improved** — run the selected case in one mode
-- **▶ Run All — Baseline / ▶ Run All — Improved** — run all 5 cases
-- **Compare tab** — side-by-side baseline vs improved for the selected case
-- **All Cases table** (bottom) — overview of every verdict and match rate
-- **Download JSON / Download CSV** — export existing session results without running the model again
+The default model identifier is:
 
----
-
-## Running the Tests
-
-```bash
-pytest tests/ -v
+```text
+gemma-4-26b-a4b-it
 ```
 
-The tests cover:
-- Scorer: exact match, mismatch, missing field, unexpected field, ERROR path
-- Scorer: time normalisation (3pm == 3:00 PM), currency ($3,000 == 3000)
-- Scorer: clarification metric (ambiguous case)
-- Scorer: aggregate summary (`summarise`)
-- Normalizer: time strings, 24h format, noon/midnight edge cases
-- Normalizer: currency stripping, int/float equality
-- Normalizer: list sorting, string case/whitespace
+Override it without changing source code:
 
-No API key is required to run the tests — they use only the scoring and normalisation logic.
+```powershell
+$env:INTENTLEDGER_MODEL = "your-model-id"
+```
 
----
+The sidebar deliberately distinguishes:
 
-## Test Cases
+- **API key configured** — a non-empty key is present.
+- **Live request verified** — the configured model was found through a real model-list request.
 
-| # | Name | Scenario Type | Key challenge |
-|---|---|---|---|
-| 01 | Accepted Correction | `accepted_correction` | 2 PM → 3 PM: old value must be discarded |
-| 02 | Rejected Suggestion | `rejected_suggestion` | La Maison proposed but rejected; Bella Italia must win |
-| 03 | Partial Update | `partial_update` | Budget $2k → $3k; destination/duration/accommodation unchanged |
-| 04 | Cancellation | `cancellation` | Subscription active → must become cancelled |
-| 05 | Ambiguous Instruction | `ambiguous_instruction` | Colour "something warm" — model must flag uncertainty |
+Key presence alone is never presented as proof that the model is reachable.
 
-Each case contains:
-- `conversation` — the multi-turn transcript
-- `expected_state` — human-authored ground truth JSON
-- `clarification_expected` — whether the ambiguity metric applies
-- `notes` — explanation of what the model must get right
-
----
-
-## Evaluation Modes
+## Two Evaluation Modes
 
 ### Baseline
 
-A simple prompt: *"Extract the final intended state as JSON."*
-
-No special instructions about corrections, rejections, or ambiguity.
+The baseline prompt asks the model to extract the final intended state as JSON. It provides no dedicated rules for conversational corrections or uncertainty.
 
 ### Improved
 
-An explicit prompt that instructs the model to:
-1. **Corrections** — use only the most recent value
-2. **Rejected suggestions** — exclude anything the user rejected
-3. **Partial updates** — retain unchanged fields
-4. **Cancellations** — set action to the cancellation intent and status to `"cancelled"`
-5. **Ambiguity** — set ambiguous fields to `"AMBIGUOUS"` and add `clarification_needed: true`
+The improved prompt explicitly instructs the model to:
 
-Both modes are run on the **same cases and expected states**. Scores are never fabricated; they come from actual model responses.
+1. Replace earlier values with confirmed corrections.
+2. Exclude assistant suggestions rejected by the user.
+3. Preserve unchanged fields during partial updates.
+4. Represent cancellations as the active final intent.
+5. Mark unresolved values as `AMBIGUOUS` and request clarification.
 
----
+Both modes use the same transcripts, expected states, normalizer, and scorer.
+
+## Benchmark Scenarios
+
+| # | Scenario | What it tests | Required behavior |
+|---:|---|---|---|
+| 01 | Accepted Correction | Meeting time changes from 2 PM to 3 PM | Keep 3 PM and preserve all unchanged fields |
+| 02 | Rejected Suggestion | Assistant proposes La Maison; user rejects it | Retain Bella Italia and exclude the suggestion |
+| 03 | Partial Update | Trip budget changes from 2000 to 3000 | Update only the budget |
+| 04 | Cancellation | Newsletter signup is later cancelled | Return a cancellation intent and cancelled status |
+| 05 | Ambiguous Instruction | User asks for a warm color without choosing one | Mark the color ambiguous and request clarification |
+
+Each JSON case contains a conversation, expected state, clarification requirement, and evaluation note.
+
+## Scoring
+
+Expected fields are compared with the model prediction after normalization.
+
+| Outcome | Meaning | Verdict effect |
+|---|---|---|
+| `match` | Expected and predicted values are equivalent | Counts toward the match rate |
+| `mismatch` | Field exists but contains a different value | Produces `FAIL` |
+| `missing` | Expected field is absent | Produces `FAIL` |
+| `unexpected` | Prediction contains an extra field | Reported but does not fail by itself |
+| `ERROR` | No valid prediction could be scored | Remains operationally distinct from `FAIL` |
+
+Normalization supports:
+
+- Equivalent time formats such as `3pm`, `3:00 PM`, and `15:00`
+- Currency and numeric strings such as `$3,000` and `3000`
+- Case-insensitive strings
+- Order-insensitive lists, including mixed value types
+
+The ambiguous scenario also requires `clarification_needed` to be true.
+
+## Exporting Results
+
+After at least one evaluation, the dashboard enables two downloads:
+
+- **JSON** preserves nested expected and predicted states, field comparisons, verdicts, counts, model ID, format version, and UTC export timestamp.
+- **CSV** emits one row per evaluated scenario and prompt mode. Nested states are stored as valid JSON strings inside correctly quoted CSV cells.
+
+Exports include only results already present in Streamlit session state. Downloading does not call the model and missing modes are never fabricated.
+
+ERROR records retain a stable classification such as:
+
+- `offline_mode`
+- `quota_exceeded`
+- `invalid_api_key`
+- `model_not_found`
+- `dependency_missing`
+- `invalid_response`
+- `model_call_failed`
+
+Credential-shaped values and the credential environment-variable name are removed from exported diagnostics.
+
+## Architecture
+
+```text
+Conversation case
+      |
+      v
+engine/prompts.py        Build baseline or improved prompt
+      |
+      v
+engine/extractor.py      Call the configured model and parse an object
+      |
+      v
+engine/normalizer.py     Canonicalize comparable values
+      |
+      v
+engine/scorer.py         Produce field results and PASS/FAIL/ERROR
+      |                              |
+      v                              v
+app.py + ui.py            engine/exporter.py
+Interactive dashboard     JSON and CSV serialization
+```
+
+### Project Structure
+
+```text
+IntentLedger-HackDay/
+├── app.py                         Streamlit application and session state
+├── ui.py                          Reusable UI renderers and design system
+├── requirements.txt
+├── engine/
+│   ├── extractor.py               Model access, parsing, and error handling
+│   ├── exporter.py                JSON/CSV serialization and sanitization
+│   ├── loader.py                  Benchmark loader
+│   ├── normalizer.py              Canonical value normalization
+│   ├── prompts.py                 Baseline and improved prompts
+│   └── scorer.py                  Field-level scoring and summaries
+├── tests/
+│   ├── cases/                     Five benchmark scenarios
+│   ├── test_exporter.py
+│   ├── test_extractor_config.py
+│   ├── test_normalizer.py
+│   └── test_scorer.py
+└── tools/
+    └── build_project_report.py     Optional Word report generator
+```
 
 ## Offline Mode
 
-When `GEMINI_API_KEY` is not set (or set to an empty string), IntentLedger enters **offline mode**:
+When `GEMINI_API_KEY` is absent or empty:
 
-- No model calls are made.
-- Every case returns an `ERROR` result with the label **"OFFLINE MODE"**.
-- You can still validate the UI, test-case display, field table, and tab layout.
-- The offline state is prominently displayed in the sidebar and result panels.
-- Offline results are never labelled as real model results.
+- No model request is made.
+- Evaluations return `ERROR` with the offline classification.
+- The transcript, expected state, navigation, export controls, and ERROR views remain testable.
+- Offline results are never displayed as model scores.
 
----
+This makes the evaluation harness safe to inspect and demonstrate without credentials.
+
+## Testing
+
+Run the complete suite:
+
+```bash
+pytest tests -v
+```
+
+Current status: **67 tests passing**.
+
+Coverage includes:
+
+- Default and overridden model configuration
+- API-key presence and offline behavior
+- Plain, fenced, embedded, malformed, and wrong-shape JSON output
+- Time, currency, number, string, and list normalization
+- PASS, FAIL, ERROR, clarification, and aggregate scoring paths
+- Successful, partial-mode, empty, and ERROR exports
+- Nested JSON preservation and CSV quoting
+- Unicode, commas, quotation marks, and newlines in exported fields
+- Credential redaction and prevention of fabricated results
+
+Tests do not require a live API key.
+
+## Common Commands
+
+```bash
+# Launch the app
+streamlit run app.py
+
+# Run all tests
+pytest tests -v
+
+# Run only exporter tests
+pytest tests/test_exporter.py -v
+
+# Override the model for one PowerShell session
+$env:INTENTLEDGER_MODEL = "your-model-id"
+```
 
 ## Limitations
 
-1. **5 cases only.** This is a demonstration benchmark, not a statistically valid evaluation.
-2. **Single model.** We test one model at a time. Different model families may behave differently.
-3. **Prompt sensitivity.** Small prompt wording changes can shift verdicts. The improved prompt was written by hand and may not generalise.
-4. **JSON-only extraction.** The model must output valid JSON. Structured output mode is not used, so parsing failures are possible.
-5. **No multi-hop reasoning.** Cases have at most 4 turns. Longer conversations may reveal different failure modes.
-6. **English only.** Cases are in English; no multilingual evaluation.
+1. The benchmark contains five hand-crafted English scenarios.
+2. It evaluates one configured model at a time.
+3. Prompt wording can affect results.
+4. The model must return a JSON object; strict schema-based structured output is not enabled.
+5. Cases are short and do not represent long-context or adversarial conversations.
+6. Live results depend on external API availability, quota, credentials, and model access.
+
+## Roadmap
+
+- Expand the benchmark with independently reviewed scenarios.
+- Add repeated-run and multi-model comparison.
+- Export latency and token-usage metadata when available.
+- Add strict structured-output schemas.
+- Add longer, multilingual, and adversarial conversations.
+- Add CI checks for tests and Streamlit startup.
+
+## Responsible Use
+
+IntentLedger is an evaluation aid, not a certification system. A PASS means that one model response matched one expected state under the current normalizer and prompt. It does not prove that the model is safe, reliable, or suitable for high-stakes deployment.
+
+## AI Assistance Disclosure
+
+This hackathon project was developed with AI coding assistance under human supervision. The runtime evaluation model is configured separately through the Google Gen AI SDK. Benchmark cases and expected states should be reviewed by a human before results are used for decision-making.
+
+## License
+
+No open-source license has been added yet. Until a license is provided, standard copyright restrictions apply.
 
 ---
 
-## AI-Tool Disclosure
-
-This project was built with **AI coding assistance** as part of a hackathon:
-
-| Tool | Use |
-|---|---|
-| **Antigravity (Google Deepmind)** | Full implementation: file creation, engine modules, Streamlit UI, unit tests, README |
-| **Google Gemma 4 (hosted via google-genai SDK)** | Default runtime model (`gemma-4-26b-a4b-it`) for intent extraction — runs on Google infrastructure, not locally |
-
-All test cases and expected states were authored and reviewed by the human developer. The AI assistant wrote code under human supervision.
-
----
-
-*IntentLedger · HackDay 2026 · Built with Python, Streamlit, and Google Gen AI*
+Built with Python, Streamlit, and the Google Gen AI SDK.
